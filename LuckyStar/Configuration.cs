@@ -31,15 +31,15 @@ public class Configuration : IPluginConfiguration
     public bool DelayEnable = false;
     public int DelayTime = 10;
     [NonSerialized]
-    private DalamudPluginInterface? PluginInterface;
+    private DalamudPluginInterface? pluginInterface;
 
     public void Initialize(DalamudPluginInterface pluginInterface)
     {
-        PluginInterface = pluginInterface;
+        this.pluginInterface = pluginInterface;
     }
 
     public void Save()
     {
-        PluginInterface!.SavePluginConfig(this);
+        pluginInterface!.SavePluginConfig(this);
     }
 }

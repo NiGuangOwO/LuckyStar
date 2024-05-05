@@ -301,10 +301,10 @@ public unsafe class MainWindow : Window, IDisposable
             {
                 if (tabItem)
                 {
-                    ImGui.Text($"Position: {Svc.ClientState.LocalPlayer.Position}");
+                    ImGui.Text($"Position: {Svc.ClientState.LocalPlayer?.Position}");
                     if (ImGui.Button("复制"))
                     {
-                        ImGui.SetClipboardText($"({Svc.ClientState.LocalPlayer.Position.X}f,{Svc.ClientState.LocalPlayer.Position.Y}f,{Svc.ClientState.LocalPlayer.Position.Z}f),");
+                        ImGui.SetClipboardText($"({Svc.ClientState.LocalPlayer?.Position.X}f,{Svc.ClientState.LocalPlayer?.Position.Y}f,{Svc.ClientState.LocalPlayer?.Position.Z}f),");
                     }
                     ImGui.Text($"isRunning: {isRunning}");
                     ImGui.Text($"DataIndex: {dataIndex}");
@@ -346,7 +346,7 @@ public unsafe class MainWindow : Window, IDisposable
             return;
         }
 
-        var Posdistance = Math.Sqrt(Math.Pow(currentList[dataIndex].X - Svc.ClientState.LocalPlayer.Position.X, 2) + Math.Pow(currentList[dataIndex].Z - Svc.ClientState.LocalPlayer.Position.Z, 2));
+        var Posdistance = Math.Sqrt(Math.Pow(currentList[dataIndex].X - Svc.ClientState.LocalPlayer!.Position.X, 2) + Math.Pow(currentList[dataIndex].Z - Svc.ClientState.LocalPlayer!.Position.Z, 2));
         if (!readyToTheNextpos && Posdistance < 5)
         {
             if (Svc.Objects.OfType<BattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 20).Any())
@@ -463,13 +463,13 @@ public unsafe class MainWindow : Window, IDisposable
         ActionManager.Instance()->UseAction(ActionType.GeneralAction, 2); //起飞
         needToTakeOff = false;
     }
-    public void TurnOnAE()
+    public static void TurnOnAE()
     {
         Chat.Instance.ExecuteCommand($"/aeTargetSelector on");
         Chat.Instance.ExecuteCommand($"/aeTargetSelector mode7");
         Chat.Instance.ExecuteCommand($"/aepull on");
     }
-    public void TurnOffAE()
+    public static void TurnOffAE()
     {
         Chat.Instance.ExecuteCommand($"/aeTargetSelector off");
         Chat.Instance.ExecuteCommand($"/aepull off");
