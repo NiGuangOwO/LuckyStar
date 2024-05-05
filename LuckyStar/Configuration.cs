@@ -21,6 +21,8 @@ public class Configuration : IPluginConfiguration
     public bool YiXiuDa_2_check = true;
     public bool YiXiuDa_3_check = true;
 
+    public bool 优昙婆罗花_1 = true;
+    public bool 优昙婆罗花_2 = true;
     [NonSerialized]
     private DalamudPluginInterface? PluginInterface;
 
