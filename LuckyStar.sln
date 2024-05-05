@@ -5,7 +5,7 @@ VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LuckyStar", "LuckyStar\LuckyStar.csproj", "{13C812E9-0D42-4B95-8646-40EEBF30636F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ECommons", "..\moewcorp\ECommons\ECommons\ECommons.csproj", "{3632A045-8CC2-4AB9-B4E7-FC63EB630173}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ECommons", "Ecommons\ECommons\ECommons.csproj", "{28348529-C3CE-4308-A9F4-554E40471A74}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,14 +23,14 @@ Global
 		{13C812E9-0D42-4B95-8646-40EEBF30636F}.Release|x64.Build.0 = Release|x64
 		{13C812E9-0D42-4B95-8646-40EEBF30636F}.ReleaseForms|x64.ActiveCfg = Release|x64
 		{13C812E9-0D42-4B95-8646-40EEBF30636F}.ReleaseForms|x64.Build.0 = Release|x64
-		{3632A045-8CC2-4AB9-B4E7-FC63EB630173}.Debug|x64.ActiveCfg = Debug|x64
-		{3632A045-8CC2-4AB9-B4E7-FC63EB630173}.Debug|x64.Build.0 = Debug|x64
-		{3632A045-8CC2-4AB9-B4E7-FC63EB630173}.DebugForms|x64.ActiveCfg = DebugForms|x64
-		{3632A045-8CC2-4AB9-B4E7-FC63EB630173}.DebugForms|x64.Build.0 = DebugForms|x64
-		{3632A045-8CC2-4AB9-B4E7-FC63EB630173}.Release|x64.ActiveCfg = Release|x64
-		{3632A045-8CC2-4AB9-B4E7-FC63EB630173}.Release|x64.Build.0 = Release|x64
-		{3632A045-8CC2-4AB9-B4E7-FC63EB630173}.ReleaseForms|x64.ActiveCfg = ReleaseForms|x64
-		{3632A045-8CC2-4AB9-B4E7-FC63EB630173}.ReleaseForms|x64.Build.0 = ReleaseForms|x64
+		{28348529-C3CE-4308-A9F4-554E40471A74}.Debug|x64.ActiveCfg = Debug|x64
+		{28348529-C3CE-4308-A9F4-554E40471A74}.Debug|x64.Build.0 = Debug|x64
+		{28348529-C3CE-4308-A9F4-554E40471A74}.DebugForms|x64.ActiveCfg = DebugForms|x64
+		{28348529-C3CE-4308-A9F4-554E40471A74}.DebugForms|x64.Build.0 = DebugForms|x64
+		{28348529-C3CE-4308-A9F4-554E40471A74}.Release|x64.ActiveCfg = Release|x64
+		{28348529-C3CE-4308-A9F4-554E40471A74}.Release|x64.Build.0 = Release|x64
+		{28348529-C3CE-4308-A9F4-554E40471A74}.ReleaseForms|x64.ActiveCfg = ReleaseForms|x64
+		{28348529-C3CE-4308-A9F4-554E40471A74}.ReleaseForms|x64.Build.0 = ReleaseForms|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

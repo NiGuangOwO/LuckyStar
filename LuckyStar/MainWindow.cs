@@ -18,12 +18,14 @@ namespace LuckyStar.Windows;
 public unsafe class MainWindow : Window, IDisposable
 {
     private string state = "";
+    private bool isRunning = false;
+
     private bool waitingFirst = false;
+    private long throttleTime = 0;
+
     private int dataIndex = 0;
     private bool needToTakeOff = true;
     private bool readyToTheNextpos = true;
-    private bool isRunning = false;
-    private long throttleTime = 0;
     private List<(float X, float Y, float Z)> currentList { get; set; } = [];
 
     public MainWindow() : base("LuckyStar", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
@@ -93,7 +95,7 @@ public unsafe class MainWindow : Window, IDisposable
 
         ImGui.Checkbox("##开启延迟", ref Plugin.Configuration.DelayEnable);
         ImGui.SameLine();
-        ImGui.Text("刷完一轮后第一只刷新时延迟下坐骑");
+        ImGui.Text("每轮第一只刷新时延迟下坐骑");
         if (Plugin.Configuration.DelayEnable)
         {
             ImGui.SameLine();
@@ -348,7 +350,7 @@ public unsafe class MainWindow : Window, IDisposable
                                 VnavmeshStop();
                                 Dismount();
                             }
-                            state = "击杀当前小怪";
+                            state = "等待击杀当前小怪";
                             throttleTime = 0;
                             waitingFirst = false;
                         }
@@ -364,7 +366,7 @@ public unsafe class MainWindow : Window, IDisposable
                             VnavmeshStop();
                             Dismount();
                         }
-                        state = "击杀当前小怪";
+                        state = "等待击杀当前小怪";
                         throttleTime = 0;
                         waitingFirst = false;
                     }
@@ -376,7 +378,7 @@ public unsafe class MainWindow : Window, IDisposable
                         VnavmeshStop();
                         Dismount();
                     }
-                    state = "击杀当前小怪";
+                    state = "等待击杀当前小怪";
                     throttleTime = 0;
                     waitingFirst = false;
                 }
@@ -406,17 +408,20 @@ public unsafe class MainWindow : Window, IDisposable
 
     public void reset()
     {
+        currentList.Clear();
+
+        waitingFirst = false;
+        throttleTime = 0;
+
         dataIndex = 0;
         needToTakeOff = true;
         readyToTheNextpos = true;
-        currentList.Clear();
     }
 
     public static void walkto(float x, float y, float z)
     {
         Chat.Instance.ExecuteCommand($"/vnavmesh moveto {x} {y} {z}");
     }
-
     public void flyto(float x, float y, float z)
     {
         if (!Svc.Condition[ConditionFlag.InFlight])
@@ -428,7 +433,6 @@ public unsafe class MainWindow : Window, IDisposable
             Chat.Instance.ExecuteCommand($"/vnavmesh flyto {x} {y} {z}");
         }
     }
-
     public void Mount()
     {
         ActionManager.Instance()->UseAction(ActionType.GeneralAction, 9); //上坐骑
