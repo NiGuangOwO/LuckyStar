@@ -6,7 +6,6 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using ECommons.Automation;
 using ECommons.DalamudServices;
-using ECommons.GameHelpers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using ImGuiNET;
 using System;
@@ -18,10 +17,13 @@ namespace LuckyStar.Windows;
 
 public unsafe class MainWindow : Window, IDisposable
 {
+    private string state = "";
+    private bool waitingFirst = false;
     private int dataIndex = 0;
     private bool needToTakeOff = true;
     private bool readyToTheNextpos = true;
     private bool isRunning = false;
+    private long throttleTime = 0;
     private List<(float X, float Y, float Z)> currentList { get; set; } = [];
 
     public MainWindow() : base("LuckyStar", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
@@ -36,12 +38,14 @@ public unsafe class MainWindow : Window, IDisposable
             {
                 if (!Svc.Condition[ConditionFlag.Mounted])
                 {
+                    state = "上坐骑";
                     Mount();
                 }
                 else
                 {
                     if (!Svc.Condition[ConditionFlag.InFlight])
                     {
+                        state = "起飞";
                         Takeoff();
                     }
                     else
@@ -51,6 +55,10 @@ public unsafe class MainWindow : Window, IDisposable
                 }
             }
             Run();
+        }
+        else
+        {
+            state = "未运行";
         }
     }
 
@@ -62,6 +70,42 @@ public unsafe class MainWindow : Window, IDisposable
 
     public override void Draw()
     {
+        if (ImGui.Button("停止"))
+        {
+            isRunning = false;
+            VnavmeshStop();
+            reset();
+        }
+
+        ImGui.SameLine();
+        ImGui.Text($"状态：{state}");
+        if (dataIndex == 0 && waitingFirst)
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("强制跳过"))
+            {
+                dataIndex++;
+                waitingFirst = false;
+                needToTakeOff = true;
+                readyToTheNextpos = true;
+            }
+        }
+
+        ImGui.Checkbox("##开启延迟", ref Plugin.Configuration.DelayEnable);
+        ImGui.SameLine();
+        ImGui.Text("刷完一轮后第一只刷新时延迟下坐骑");
+        if (Plugin.Configuration.DelayEnable)
+        {
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(100f);
+            if (ImGui.InputInt("延迟时间 (s)", ref Plugin.Configuration.DelayTime))
+            {
+                if (Plugin.Configuration.DelayTime < 0)
+                    Plugin.Configuration.DelayTime = 0;
+                Plugin.Configuration.Save();
+            }
+        }
+
         using var tab = ImRaii.TabBar("mainTab");
         if (tab)
         {
@@ -100,13 +144,6 @@ public unsafe class MainWindow : Window, IDisposable
                         isRunning = true;
                     }
                     ImGui.EndDisabled();
-                    ImGui.SameLine();
-                    if (ImGui.Button("Stop##PoZhiJia"))
-                    {
-                        isRunning = false;
-                        Stop();
-                        reset();
-                    }
 
                     ImGui.Separator();
                     ImGui.Text("叹息海-沉思之物");
@@ -140,13 +177,6 @@ public unsafe class MainWindow : Window, IDisposable
                         isRunning = true;
                     }
                     ImGui.EndDisabled();
-                    ImGui.SameLine();
-                    if (ImGui.Button("Stop##Tanxi"))
-                    {
-                        isRunning = false;
-                        Stop();
-                        reset();
-                    }
 
                     ImGui.Separator();
                     ImGui.Text("拉凯提亚大森林-伊休妲");
@@ -180,13 +210,6 @@ public unsafe class MainWindow : Window, IDisposable
                         isRunning = true;
                     }
                     ImGui.EndDisabled();
-                    ImGui.SameLine();
-                    if (ImGui.Button("Stop##YiXiuDa"))
-                    {
-                        isRunning = false;
-                        Stop();
-                        reset();
-                    }
 
                     ImGui.Separator();
                     ImGui.Text("基拉巴尼亚边区-优昙婆罗花");
@@ -213,26 +236,61 @@ public unsafe class MainWindow : Window, IDisposable
                         isRunning = true;
                     }
                     ImGui.EndDisabled();
+
+                    ImGui.Separator();
+                    ImGui.Text("魔大陆阿济兹拉-卢克洛塔");
                     ImGui.SameLine();
-                    if (ImGui.Button("Stop##优昙婆罗花"))
+                    ImGui.BeginDisabled(isRunning);
+                    if (ImGui.Checkbox("奇美拉", ref Plugin.Configuration.卢克洛塔_1))
                     {
-                        isRunning = false;
-                        Stop();
-                        reset();
+                        Plugin.Configuration.Save();
                     }
+                    ImGui.SameLine();
+                    if (ImGui.Checkbox("海德拉", ref Plugin.Configuration.卢克洛塔_2))
+                    {
+                        Plugin.Configuration.Save();
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.Checkbox("薇薇尔飞龙", ref Plugin.Configuration.卢克洛塔_3))
+                    {
+                        Plugin.Configuration.Save();
+                    }
+                    ImGui.SameLine();
+                    if (ImGui.Button("Go##卢克洛塔"))
+                    {
+                        reset();
+                        if (Plugin.Configuration.卢克洛塔_1)
+                        {
+                            currentList.AddRange(MobsData.卢克洛塔.奇美拉);
+                        }
+                        if (Plugin.Configuration.卢克洛塔_2)
+                        {
+                            currentList.AddRange(MobsData.卢克洛塔.海德拉);
+                        }
+                        if (Plugin.Configuration.卢克洛塔_3)
+                        {
+                            currentList.AddRange(MobsData.卢克洛塔.薇薇尔飞龙);
+                        }
+                        currentList = GetShortestPath(currentList);
+                        isRunning = true;
+                    }
+                    ImGui.EndDisabled();
                 }
             }
+
             using (var tabItem = ImRaii.TabItem("Debug"))
             {
                 if (tabItem)
                 {
-                    ImGui.Text($"Position: {Player.GameObject->Position}");
+                    ImGui.Text($"Position: {Svc.ClientState.LocalPlayer.Position}");
                     if (ImGui.Button("复制"))
                     {
                         ImGui.SetClipboardText($"({Svc.ClientState.LocalPlayer.Position.X}f,{Svc.ClientState.LocalPlayer.Position.Y}f,{Svc.ClientState.LocalPlayer.Position.Z}f),");
                     }
                     ImGui.Text($"isRunning: {isRunning}");
                     ImGui.Text($"DataIndex: {dataIndex}");
+                    ImGui.Text($"waitingFirst: {waitingFirst}");
+                    ImGui.Text($"throttleTime: {throttleTime}");
                     ImGui.Text($"needToTakeOff: {needToTakeOff}");
                     ImGui.Text($"readyToTheNextpos: {readyToTheNextpos}");
                     foreach (var pos in currentList)
@@ -256,13 +314,15 @@ public unsafe class MainWindow : Window, IDisposable
         if (dataIndex >= currentList.Count)
         {
             dataIndex = 0;
+            waitingFirst = true;
             return;
         }
 
         if (Svc.Condition[ConditionFlag.InFlight] && readyToTheNextpos)
         {
+            state = "寻路至下一只小怪";
             readyToTheNextpos = false;
-            Stop();
+            VnavmeshStop();
             flyto(currentList[dataIndex].X, currentList[dataIndex].Y, currentList[dataIndex].Z);
             return;
         }
@@ -272,18 +332,67 @@ public unsafe class MainWindow : Window, IDisposable
         {
             if (Svc.Objects.OfType<BattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 20).Any())
             {
-                if (Svc.Condition[ConditionFlag.Mounted])
+                if (waitingFirst)
                 {
-                    Stop();
-                    Dismount();
+                    if (Plugin.Configuration.DelayEnable)
+                    {
+                        if (throttleTime == 0)
+                        {
+                            throttleTime = Environment.TickCount64 + (Plugin.Configuration.DelayTime * 1000);
+                        }
+
+                        if (throttleTime != 0 && Environment.TickCount64 > throttleTime)
+                        {
+                            if (Svc.Condition[ConditionFlag.Mounted])
+                            {
+                                VnavmeshStop();
+                                Dismount();
+                            }
+                            state = "击杀当前小怪";
+                            throttleTime = 0;
+                            waitingFirst = false;
+                        }
+                        else
+                        {
+                            state = $"第一只小怪已刷新，延迟剩余{throttleTime - Environment.TickCount64}ms";
+                        }
+                    }
+                    else
+                    {
+                        if (Svc.Condition[ConditionFlag.Mounted])
+                        {
+                            VnavmeshStop();
+                            Dismount();
+                        }
+                        state = "击杀当前小怪";
+                        throttleTime = 0;
+                        waitingFirst = false;
+                    }
+                }
+                else
+                {
+                    if (Svc.Condition[ConditionFlag.Mounted])
+                    {
+                        VnavmeshStop();
+                        Dismount();
+                    }
+                    state = "击杀当前小怪";
+                    throttleTime = 0;
+                    waitingFirst = false;
                 }
             }
             else
             {
-                Stop();
+                if (dataIndex == 0 && waitingFirst)
+                {
+                    state = "等待第一只刷新";
+                    return;
+                }
+
                 if (dataIndex >= currentList.Count)
                 {
                     dataIndex = 0;
+                    waitingFirst = true;
                 }
                 else
                 {
@@ -306,18 +415,6 @@ public unsafe class MainWindow : Window, IDisposable
     public static void walkto(float x, float y, float z)
     {
         Chat.Instance.ExecuteCommand($"/vnavmesh moveto {x} {y} {z}");
-    }
-
-    public void walktowithmount(float x, float y, float z)
-    {
-        if (!Svc.Condition[ConditionFlag.Mounted])
-        {
-            Mount();
-        }
-        else
-        {
-            Chat.Instance.ExecuteCommand($"/vnavmesh moveto {x} {y} {z}");
-        }
     }
 
     public void flyto(float x, float y, float z)
@@ -345,7 +442,7 @@ public unsafe class MainWindow : Window, IDisposable
         ActionManager.Instance()->UseAction(ActionType.GeneralAction, 2); //起飞
         needToTakeOff = false;
     }
-    public static void Stop()
+    public static void VnavmeshStop()
     {
         Chat.Instance.ExecuteCommand($"/vnavmesh stop");
     }

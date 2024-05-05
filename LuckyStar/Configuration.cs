@@ -23,6 +23,13 @@ public class Configuration : IPluginConfiguration
 
     public bool 优昙婆罗花_1 = true;
     public bool 优昙婆罗花_2 = true;
+
+    public bool 卢克洛塔_1 = true;
+    public bool 卢克洛塔_2 = true;
+    public bool 卢克洛塔_3 = true;
+
+    public bool DelayEnable = false;
+    public int DelayTime = 10;
     [NonSerialized]
     private DalamudPluginInterface? PluginInterface;
 

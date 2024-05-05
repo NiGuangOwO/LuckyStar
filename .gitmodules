@@ -1,0 +1,3 @@
+[submodule "Ecommons"]
+	path = Ecommons
+	url = https://github.com/moewcorp/ECommons.git
