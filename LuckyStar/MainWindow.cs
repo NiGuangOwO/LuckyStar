@@ -76,6 +76,7 @@ public unsafe class MainWindow : Window, IDisposable
         {
             isRunning = false;
             VnavmeshStop();
+            TurnOffAE();
             reset();
         }
 
@@ -93,7 +94,10 @@ public unsafe class MainWindow : Window, IDisposable
             }
         }
 
-        ImGui.Checkbox("##开启延迟", ref Plugin.Configuration.DelayEnable);
+        if (ImGui.Checkbox("##开启延迟", ref Plugin.Configuration.DelayEnable))
+        {
+            Plugin.Configuration.Save();
+        }
         ImGui.SameLine();
         ImGui.Text("每轮第一只刷新时延迟下坐骑");
         if (Plugin.Configuration.DelayEnable)
@@ -115,7 +119,7 @@ public unsafe class MainWindow : Window, IDisposable
             {
                 if (tabItem)
                 {
-                    ImGui.Text("萨维奈岛-颇胝迦");
+                    ImGui.Text("萨维奈岛 - 颇胝迦");
                     ImGui.SameLine();
                     ImGui.BeginDisabled(isRunning);
                     if (ImGui.Checkbox("阿输陀花", ref Plugin.Configuration.PoZhiJia_1_check))
@@ -143,6 +147,7 @@ public unsafe class MainWindow : Window, IDisposable
                         if (Plugin.Configuration.PoZhiJia_3_check)
                             currentList.AddRange(MobsData.PoZhiJia.金刚尾);
                         currentList = GetShortestPath(currentList);
+                        TurnOnAE();
                         isRunning = true;
                     }
                     ImGui.EndDisabled();
@@ -176,12 +181,13 @@ public unsafe class MainWindow : Window, IDisposable
                         if (Plugin.Configuration.TanXiZhiWu_3_check)
                             currentList.AddRange(MobsData.TanXiZhiWu.叹息之物);
                         currentList = GetShortestPath(currentList);
+                        TurnOnAE();
                         isRunning = true;
                     }
                     ImGui.EndDisabled();
 
                     ImGui.Separator();
-                    ImGui.Text("拉凯提亚大森林-伊休妲");
+                    ImGui.Text("拉凯提亚大森林 - 伊休妲");
                     ImGui.SameLine();
                     ImGui.BeginDisabled(isRunning);
                     if (ImGui.Checkbox("人偶", ref Plugin.Configuration.YiXiuDa_1_check))
@@ -209,12 +215,13 @@ public unsafe class MainWindow : Window, IDisposable
                         if (Plugin.Configuration.YiXiuDa_3_check)
                             currentList.AddRange(MobsData.YiXiuDa.器皿);
                         currentList = GetShortestPath(currentList);
+                        TurnOnAE();
                         isRunning = true;
                     }
                     ImGui.EndDisabled();
 
                     ImGui.Separator();
-                    ImGui.Text("基拉巴尼亚边区-优昙婆罗花");
+                    ImGui.Text("基拉巴尼亚边区 - 优昙婆罗花");
                     ImGui.SameLine();
                     ImGui.BeginDisabled(isRunning);
                     if (ImGui.Checkbox("莱西", ref Plugin.Configuration.优昙婆罗花_1))
@@ -235,12 +242,13 @@ public unsafe class MainWindow : Window, IDisposable
                         if (Plugin.Configuration.优昙婆罗花_2)
                             currentList.AddRange(MobsData.优昙婆罗花.狄亚卡);
                         currentList = GetShortestPath(currentList);
+                        TurnOnAE();
                         isRunning = true;
                     }
                     ImGui.EndDisabled();
 
                     ImGui.Separator();
-                    ImGui.Text("魔大陆阿济兹拉-卢克洛塔");
+                    ImGui.Text("魔大陆阿济兹拉 - 卢克洛塔");
                     ImGui.SameLine();
                     ImGui.BeginDisabled(isRunning);
                     if (ImGui.Checkbox("奇美拉", ref Plugin.Configuration.卢克洛塔_1))
@@ -262,18 +270,27 @@ public unsafe class MainWindow : Window, IDisposable
                     {
                         reset();
                         if (Plugin.Configuration.卢克洛塔_1)
-                        {
                             currentList.AddRange(MobsData.卢克洛塔.奇美拉);
-                        }
                         if (Plugin.Configuration.卢克洛塔_2)
-                        {
                             currentList.AddRange(MobsData.卢克洛塔.海德拉);
-                        }
                         if (Plugin.Configuration.卢克洛塔_3)
-                        {
                             currentList.AddRange(MobsData.卢克洛塔.薇薇尔飞龙);
-                        }
                         currentList = GetShortestPath(currentList);
+                        TurnOnAE();
+                        isRunning = true;
+                    }
+                    ImGui.EndDisabled();
+
+                    ImGui.Separator();
+                    ImGui.Text("北萨纳兰 - 蚓螈巨虫");
+                    ImGui.SameLine();
+                    ImGui.BeginDisabled(isRunning);
+                    ImGui.SameLine();
+                    if (ImGui.Button("Go##蚓螈巨虫"))
+                    {
+                        reset();
+                        currentList = GetShortestPath(MobsData.蚓螈巨虫);
+                        TurnOnAE();
                         isRunning = true;
                     }
                     ImGui.EndDisabled();
@@ -445,6 +462,17 @@ public unsafe class MainWindow : Window, IDisposable
     {
         ActionManager.Instance()->UseAction(ActionType.GeneralAction, 2); //起飞
         needToTakeOff = false;
+    }
+    public void TurnOnAE()
+    {
+        Chat.Instance.ExecuteCommand($"/aeTargetSelector on");
+        Chat.Instance.ExecuteCommand($"/aeTargetSelector mode7");
+        Chat.Instance.ExecuteCommand($"/aepull on");
+    }
+    public void TurnOffAE()
+    {
+        Chat.Instance.ExecuteCommand($"/aeTargetSelector off");
+        Chat.Instance.ExecuteCommand($"/aepull off");
     }
     public static void VnavmeshStop()
     {
