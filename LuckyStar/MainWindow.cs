@@ -175,7 +175,7 @@ public unsafe class MainWindow : Window, IDisposable
                     {
                         reset();
                         if (Plugin.Configuration.TanXiZhiWu_1_check)
-                            currentList.AddRange(MobsData.TanXiZhiWu.叹息之物);
+                            currentList.AddRange(MobsData.TanXiZhiWu.思考之物);
                         if (Plugin.Configuration.TanXiZhiWu_2_check)
                             currentList.AddRange(MobsData.TanXiZhiWu.彷徨之物);
                         if (Plugin.Configuration.TanXiZhiWu_3_check)
@@ -347,7 +347,7 @@ public unsafe class MainWindow : Window, IDisposable
         }
 
         var Posdistance = Math.Sqrt(Math.Pow(currentList[dataIndex].X - Svc.ClientState.LocalPlayer!.Position.X, 2) + Math.Pow(currentList[dataIndex].Z - Svc.ClientState.LocalPlayer!.Position.Z, 2));
-        if (!readyToTheNextpos && Posdistance < 5)
+        if (!readyToTheNextpos && Posdistance < 3)
         {
             if (Svc.Objects.OfType<BattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 20).Any())
             {

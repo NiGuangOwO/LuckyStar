@@ -1,11 +1,11 @@
 {
     "Author": "0x, NiGuangOwO",
     "Name": "LuckyStar",
-    "Punchline": "自动农怪（需安装nvavmesh及自动循环插件）",
+    "Punchline": "自动农怪（需安装vnavmesh及自动循环插件）",
     "Description": "woc！触发组！",
     "ApplicableVersion": "any",
     "Tags": [
-        "RankS",
-        "Fate"
-    ]
+        "RankS"
+    ],
+    "Changelog": "修复月球数据错误"
 }
