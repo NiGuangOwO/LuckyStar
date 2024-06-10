@@ -26,6 +26,7 @@ public unsafe class MainWindow : Window, IDisposable
     private int dataIndex = 0;
     private bool needToTakeOff = true;
     private bool readyToTheNextpos = true;
+    private double posdistance = 0;
     private List<(float X, float Y, float Z)> currentList { get; set; } = [];
 
     public MainWindow() : base("LuckyStar", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
@@ -312,6 +313,7 @@ public unsafe class MainWindow : Window, IDisposable
                     ImGui.Text($"throttleTime: {throttleTime}");
                     ImGui.Text($"needToTakeOff: {needToTakeOff}");
                     ImGui.Text($"readyToTheNextpos: {readyToTheNextpos}");
+                    ImGui.Text($"posdistance: {posdistance}");
                     foreach (var pos in currentList)
                     {
                         if (currentList[dataIndex] == pos)
@@ -347,7 +349,9 @@ public unsafe class MainWindow : Window, IDisposable
         }
 
         var Posdistance = Math.Sqrt(Math.Pow(currentList[dataIndex].X - Svc.ClientState.LocalPlayer!.Position.X, 2) + Math.Pow(currentList[dataIndex].Z - Svc.ClientState.LocalPlayer!.Position.Z, 2));
-        if (!readyToTheNextpos && Posdistance < 3)
+        posdistance = Posdistance;
+
+        if (!readyToTheNextpos && Posdistance < 5)
         {
             if (Svc.Objects.OfType<BattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 20).Any())
             {
@@ -362,7 +366,7 @@ public unsafe class MainWindow : Window, IDisposable
 
                         if (throttleTime != 0 && Environment.TickCount64 > throttleTime)
                         {
-                            if (Svc.Condition[ConditionFlag.Mounted])
+                            if (Svc.Condition[ConditionFlag.Mounted] && Posdistance < 3)
                             {
                                 VnavmeshStop();
                                 Dismount();
@@ -377,8 +381,8 @@ public unsafe class MainWindow : Window, IDisposable
                         }
                     }
                     else
-                    {
-                        if (Svc.Condition[ConditionFlag.Mounted])
+                    {  
+                        if (Svc.Condition[ConditionFlag.Mounted] && Posdistance < 3)
                         {
                             VnavmeshStop();
                             Dismount();
@@ -390,7 +394,7 @@ public unsafe class MainWindow : Window, IDisposable
                 }
                 else
                 {
-                    if (Svc.Condition[ConditionFlag.Mounted])
+                    if (Svc.Condition[ConditionFlag.Mounted] && Posdistance < 3)
                     {
                         VnavmeshStop();
                         Dismount();
