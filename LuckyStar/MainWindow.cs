@@ -353,7 +353,7 @@ public unsafe class MainWindow : Window, IDisposable
 
         if (!readyToTheNextpos && Posdistance < 5)
         {
-            if (Svc.Objects.OfType<BattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 20).Any())
+            if (Svc.Objects.OfType<BattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 25).Any())
             {
                 if (waitingFirst)
                 {
@@ -492,7 +492,7 @@ public unsafe class MainWindow : Window, IDisposable
         var path = new List<(float X, float Y, float Z)>();
 
         // 初始点
-        var currentPoint = points.First();
+        var currentPoint = points.OrderBy(p => Distance((Svc.ClientState.LocalPlayer!.Position.X, Svc.ClientState.LocalPlayer.Position.Y, Svc.ClientState.LocalPlayer.Position.Z), p)).First();
         path.Add(currentPoint);
         points.Remove(currentPoint);
 
@@ -509,10 +509,11 @@ public unsafe class MainWindow : Window, IDisposable
     }
 
     // 计算两点之间的距离
-    public static float Distance((float X, float Y, float Z) p1, (float X, float Y, float Z) p2)
+    public static double Distance((float X, float Y, float Z) p1, (float X, float Y, float Z) p2)
     {
-        var dx = p2.X - p1.X;
-        var dz = p2.Z - p1.Z;
-        return (float)Math.Sqrt((dx * dx) + (dz * dz));
+        var dx = p1.X - p2.X;
+        var dy = p1.Y - p2.Y;
+        var dz = p1.Z - p2.Z;
+        return Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz));
     }
 }
