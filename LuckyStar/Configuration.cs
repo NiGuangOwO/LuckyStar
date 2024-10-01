@@ -31,9 +31,9 @@ public class Configuration : IPluginConfiguration
     public bool DelayEnable = false;
     public int DelayTime = 10;
     [NonSerialized]
-    private DalamudPluginInterface? pluginInterface;
+    private IDalamudPluginInterface? pluginInterface;
 
-    public void Initialize(DalamudPluginInterface pluginInterface)
+    public void Initialize(IDalamudPluginInterface pluginInterface)
     {
         this.pluginInterface = pluginInterface;
     }
