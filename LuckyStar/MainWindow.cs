@@ -353,7 +353,7 @@ public unsafe class MainWindow : Window, IDisposable
 
         if (!readyToTheNextpos && Posdistance < 5)
         {
-            if (Svc.Objects.OfType<BattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 25).Any())
+            if (Svc.Objects.OfType<IBattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 25).Any())
             {
                 if (waitingFirst)
                 {
