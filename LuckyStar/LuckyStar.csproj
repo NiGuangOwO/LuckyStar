@@ -3,12 +3,12 @@
   <Import Project="Dalamud.Plugin.Bootstrap.targets" />
 
   <PropertyGroup>
-    <Version>0.0.0.3</Version>
-    <Description>woc！触发组！请手动打开AE的主动攻击</Description>
+    <Version>0.0.0.4</Version>
+    <Description>woc！触发组！</Description>
     <PackageProjectUrl>https://github.com/NiGuangOwO/LuckyStar</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
-    <Authors>0x, NiGuangOwO</Authors>
+    <Authors>NiGuangOwO</Authors>
   </PropertyGroup>
 
   <ItemGroup>

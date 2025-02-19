@@ -381,7 +381,7 @@ public unsafe class MainWindow : Window, IDisposable
                         }
                     }
                     else
-                    {  
+                    {
                         if (Svc.Condition[ConditionFlag.Mounted] && Posdistance < 3)
                         {
                             VnavmeshStop();
