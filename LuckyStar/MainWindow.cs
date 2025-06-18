@@ -441,7 +441,7 @@ public unsafe class MainWindow : Window, IDisposable
 
     public static void walkto(float x, float y, float z)
     {
-        Chat.Instance.ExecuteCommand($"/vnavmesh moveto {x} {y} {z}");
+        Chat.Instance.ExecuteCommand($"/vnav moveto {x} {y} {z}");
     }
     public void flyto(float x, float y, float z)
     {
@@ -451,7 +451,7 @@ public unsafe class MainWindow : Window, IDisposable
         }
         else
         {
-            Chat.Instance.ExecuteCommand($"/vnavmesh flyto {x} {y} {z}");
+            Chat.Instance.ExecuteCommand($"/vnav flyto {x} {y} {z}");
         }
     }
     public void Mount()
@@ -480,7 +480,7 @@ public unsafe class MainWindow : Window, IDisposable
     }
     public static void VnavmeshStop()
     {
-        Chat.Instance.ExecuteCommand($"/vnavmesh stop");
+        Chat.Instance.ExecuteCommand($"/vnav stop");
     }
 
     // 贪婪算法计算最短路径
