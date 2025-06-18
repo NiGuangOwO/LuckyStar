@@ -3,7 +3,7 @@
   <Import Project="Dalamud.Plugin.Bootstrap.targets" />
 
   <PropertyGroup>
-    <Version>0.0.0.4</Version>
+    <Version>0.0.0.5</Version>
     <Description>woc！触发组！</Description>
     <PackageProjectUrl>https://github.com/NiGuangOwO/LuckyStar</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
