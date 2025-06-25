@@ -1,17 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="Dalamud.Plugin.Bootstrap.targets" />
+<Project Sdk="Dalamud.CN.NET.Sdk/12.0.2">
+    <PropertyGroup>
+        <Version>0.0.0.6</Version>
+        <Description>woc！触发组！</Description>
+        <PackageProjectUrl>https://github.com/NiGuangOwO/LuckyStar</PackageProjectUrl>
+        <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+        <IsPackable>false</IsPackable>
+        <Authors>NiGuangOwO</Authors>
+    </PropertyGroup>
 
-  <PropertyGroup>
-    <Version>0.0.0.5</Version>
-    <Description>woc！触发组！</Description>
-    <PackageProjectUrl>https://github.com/NiGuangOwO/LuckyStar</PackageProjectUrl>
-    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
-    <IsPackable>false</IsPackable>
-    <Authors>NiGuangOwO</Authors>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Ecommons\ECommons\ECommons.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\Ecommons\ECommons\ECommons.csproj" />
+    </ItemGroup>
 </Project>
