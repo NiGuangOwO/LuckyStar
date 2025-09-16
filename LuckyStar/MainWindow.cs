@@ -1,3 +1,4 @@
+using Dalamud.Bindings.ImGui;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Colors;
@@ -7,7 +8,6 @@ using Dalamud.Plugin.Services;
 using ECommons.Automation;
 using ECommons.DalamudServices;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Linq;
