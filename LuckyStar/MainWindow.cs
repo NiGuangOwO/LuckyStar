@@ -13,7 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
-namespace LuckyStar.Windows;
+namespace LuckyStar;
 
 public unsafe class MainWindow : Window, IDisposable
 {

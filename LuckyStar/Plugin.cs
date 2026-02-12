@@ -3,7 +3,6 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using ECommons;
 using ECommons.DalamudServices;
-using LuckyStar.Windows;
 
 namespace LuckyStar;
 
