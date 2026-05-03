@@ -1,106 +1,75 @@
 using Dalamud.Bindings.ImGui;
-using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
-using Dalamud.Plugin.Services;
-using ECommons.Automation;
 using ECommons.DalamudServices;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
 
 namespace LuckyStar;
 
-public unsafe class MainWindow : Window, IDisposable
+public class MainWindow : Window, IDisposable
 {
-    private string state = "";
-    private bool isRunning = false;
-
-    private bool waitingFirst = false;
-    private long throttleTime = 0;
-
-    private int dataIndex = 0;
-    private bool needToTakeOff = true;
-    private bool readyToTheNextpos = true;
-    private double posdistance = 0;
-    private List<(float X, float Y, float Z)> currentList { get; set; } = [];
+    private readonly FarmController controller;
 
     public MainWindow() : base("LuckyStar", ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse)
     {
-        Svc.Framework.Update += OnUpdate;
-    }
-    public void OnUpdate(IFramework framework)
-    {
-        if (isRunning)
-        {
-            if (needToTakeOff)
-            {
-                if (!Svc.Condition[ConditionFlag.Mounted])
-                {
-                    state = "上坐骑";
-                    Mount();
-                }
-                else
-                {
-                    if (!Svc.Condition[ConditionFlag.InFlight])
-                    {
-                        state = "起飞";
-                        Takeoff();
-                    }
-                    else
-                    {
-                        needToTakeOff = false;
-                    }
-                }
-            }
-            Run();
-        }
-        else
-        {
-            state = "未运行";
-        }
+        controller = new FarmController();
     }
 
     public void Dispose()
     {
         GC.SuppressFinalize(this);
-        Svc.Framework.Update -= OnUpdate;
+        controller.Dispose();
     }
 
     public override void Draw()
     {
+        DrawTopBar();
+
+        using var tab = ImRaii.TabBar("mainTab");
+        if (!tab) return;
+
+        using (var tabItem = ImRaii.TabItem("农怪"))
+        {
+            if (tabItem) DrawFarmTab();
+        }
+
+        if (Plugin.Configuration.DevMode)
+        {
+            using var tabItem = ImRaii.TabItem("Debug");
+            if (tabItem) DrawDebugTab();
+        }
+    }
+
+    // ---- 顶部控制栏 ----
+
+    private void DrawTopBar()
+    {
         if (ImGui.Button("停止"))
         {
-            isRunning = false;
-            VnavmeshStop();
-            TurnOffAE();
-            reset();
+            controller.Stop();
         }
 
         ImGui.SameLine();
-        ImGui.Text($"状态：{state}");
-        if (dataIndex == 0 && waitingFirst)
+
+        if (controller.IsRunning)
+            ImGui.TextColored(ImGuiColors.HealerGreen, $"状态：{controller.State}");
+        else
+            ImGui.Text($"状态：{controller.State}");
+
+        if (controller.DataIndex == 0 && controller.WaitingFirst)
         {
             ImGui.SameLine();
             if (ImGui.Button("强制跳过"))
-            {
-                dataIndex++;
-                waitingFirst = false;
-                needToTakeOff = true;
-                readyToTheNextpos = true;
-            }
+                controller.ForceSkipFirst();
         }
 
-        if (ImGui.Checkbox("##开启延迟", ref Plugin.Configuration.DelayEnable))
-        {
+        if (ImGui.Checkbox("##DelayEnable", ref Plugin.Configuration.DelayEnable))
             Plugin.Configuration.Save();
-        }
         ImGui.SameLine();
         ImGui.Text("每轮第一只刷新时延迟下坐骑");
+
         if (Plugin.Configuration.DelayEnable)
         {
             ImGui.SameLine();
@@ -113,407 +82,162 @@ public unsafe class MainWindow : Window, IDisposable
             }
         }
 
-        using var tab = ImRaii.TabBar("mainTab");
-        if (tab)
-        {
-            using (var tabItem = ImRaii.TabItem("农怪"))
-            {
-                if (tabItem)
-                {
-                    ImGui.Text("萨维奈岛 - 颇胝迦");
-                    ImGui.SameLine();
-                    ImGui.BeginDisabled(isRunning);
-                    if (ImGui.Checkbox("阿输陀花", ref Plugin.Configuration.PoZhiJia_1_check))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Checkbox("毕舍遮", ref Plugin.Configuration.PoZhiJia_2_check))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Checkbox("金刚尾", ref Plugin.Configuration.PoZhiJia_3_check))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Button("Go##PoZhiJia"))
-                    {
-                        reset();
-                        if (Plugin.Configuration.PoZhiJia_1_check)
-                            currentList.AddRange(MobsData.PoZhiJia.阿输陀花);
-                        if (Plugin.Configuration.PoZhiJia_2_check)
-                            currentList.AddRange(MobsData.PoZhiJia.毕舍遮);
-                        if (Plugin.Configuration.PoZhiJia_3_check)
-                            currentList.AddRange(MobsData.PoZhiJia.金刚尾);
-                        currentList = GetShortestPath(currentList);
-                        TurnOnAE();
-                        isRunning = true;
-                    }
-                    ImGui.EndDisabled();
-
-                    ImGui.Separator();
-                    ImGui.Text("叹息海-沉思之物");
-                    ImGui.SameLine();
-                    ImGui.BeginDisabled(isRunning);
-                    if (ImGui.Checkbox("思考之物", ref Plugin.Configuration.TanXiZhiWu_1_check))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Checkbox("彷徨之物", ref Plugin.Configuration.TanXiZhiWu_2_check))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Checkbox("叹息之物", ref Plugin.Configuration.TanXiZhiWu_3_check))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Button("Go##Tanxi"))
-                    {
-                        reset();
-                        if (Plugin.Configuration.TanXiZhiWu_1_check)
-                            currentList.AddRange(MobsData.TanXiZhiWu.思考之物);
-                        if (Plugin.Configuration.TanXiZhiWu_2_check)
-                            currentList.AddRange(MobsData.TanXiZhiWu.彷徨之物);
-                        if (Plugin.Configuration.TanXiZhiWu_3_check)
-                            currentList.AddRange(MobsData.TanXiZhiWu.叹息之物);
-                        currentList = GetShortestPath(currentList);
-                        TurnOnAE();
-                        isRunning = true;
-                    }
-                    ImGui.EndDisabled();
-
-                    ImGui.Separator();
-                    ImGui.Text("拉凯提亚大森林 - 伊休妲");
-                    ImGui.SameLine();
-                    ImGui.BeginDisabled(isRunning);
-                    if (ImGui.Checkbox("人偶", ref Plugin.Configuration.YiXiuDa_1_check))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Checkbox("石蒺藜", ref Plugin.Configuration.YiXiuDa_2_check))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Checkbox("器皿", ref Plugin.Configuration.YiXiuDa_3_check))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Button("Go##YiXiuDa"))
-                    {
-                        reset();
-                        if (Plugin.Configuration.YiXiuDa_1_check)
-                            currentList.AddRange(MobsData.YiXiuDa.人偶);
-                        if (Plugin.Configuration.YiXiuDa_2_check)
-                            currentList.AddRange(MobsData.YiXiuDa.石蒺藜);
-                        if (Plugin.Configuration.YiXiuDa_3_check)
-                            currentList.AddRange(MobsData.YiXiuDa.器皿);
-                        currentList = GetShortestPath(currentList);
-                        TurnOnAE();
-                        isRunning = true;
-                    }
-                    ImGui.EndDisabled();
-
-                    ImGui.Separator();
-                    ImGui.Text("基拉巴尼亚边区 - 优昙婆罗花");
-                    ImGui.SameLine();
-                    ImGui.BeginDisabled(isRunning);
-                    if (ImGui.Checkbox("莱西", ref Plugin.Configuration.优昙婆罗花_1))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Checkbox("狄亚卡", ref Plugin.Configuration.优昙婆罗花_2))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Button("Go##优昙婆罗花"))
-                    {
-                        reset();
-                        if (Plugin.Configuration.优昙婆罗花_1)
-                            currentList.AddRange(MobsData.优昙婆罗花.莱西);
-                        if (Plugin.Configuration.优昙婆罗花_2)
-                            currentList.AddRange(MobsData.优昙婆罗花.狄亚卡);
-                        currentList = GetShortestPath(currentList);
-                        TurnOnAE();
-                        isRunning = true;
-                    }
-                    ImGui.EndDisabled();
-
-                    ImGui.Separator();
-                    ImGui.Text("魔大陆阿济兹拉 - 卢克洛塔");
-                    ImGui.SameLine();
-                    ImGui.BeginDisabled(isRunning);
-                    if (ImGui.Checkbox("奇美拉", ref Plugin.Configuration.卢克洛塔_1))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Checkbox("海德拉", ref Plugin.Configuration.卢克洛塔_2))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Checkbox("薇薇尔飞龙", ref Plugin.Configuration.卢克洛塔_3))
-                    {
-                        Plugin.Configuration.Save();
-                    }
-                    ImGui.SameLine();
-                    if (ImGui.Button("Go##卢克洛塔"))
-                    {
-                        reset();
-                        if (Plugin.Configuration.卢克洛塔_1)
-                            currentList.AddRange(MobsData.卢克洛塔.奇美拉);
-                        if (Plugin.Configuration.卢克洛塔_2)
-                            currentList.AddRange(MobsData.卢克洛塔.海德拉);
-                        if (Plugin.Configuration.卢克洛塔_3)
-                            currentList.AddRange(MobsData.卢克洛塔.薇薇尔飞龙);
-                        currentList = GetShortestPath(currentList);
-                        TurnOnAE();
-                        isRunning = true;
-                    }
-                    ImGui.EndDisabled();
-
-                    ImGui.Separator();
-                    ImGui.Text("北萨纳兰 - 蚓螈巨虫");
-                    ImGui.SameLine();
-                    ImGui.BeginDisabled(isRunning);
-                    ImGui.SameLine();
-                    if (ImGui.Button("Go##蚓螈巨虫"))
-                    {
-                        reset();
-                        currentList = GetShortestPath(MobsData.蚓螈巨虫);
-                        TurnOnAE();
-                        isRunning = true;
-                    }
-                    ImGui.EndDisabled();
-                }
-            }
-
-            using (var tabItem = ImRaii.TabItem("Debug"))
-            {
-                if (tabItem)
-                {
-                    ImGui.Text($"Position: {Svc.Objects.LocalPlayer?.Position}");
-                    if (ImGui.Button("复制"))
-                    {
-                        ImGui.SetClipboardText($"({Svc.Objects.LocalPlayer?.Position.X}f,{Svc.Objects.LocalPlayer?.Position.Y}f,{Svc.Objects.LocalPlayer?.Position.Z}f),");
-                    }
-                    ImGui.Text($"isRunning: {isRunning}");
-                    ImGui.Text($"DataIndex: {dataIndex}");
-                    ImGui.Text($"waitingFirst: {waitingFirst}");
-                    ImGui.Text($"throttleTime: {throttleTime}");
-                    ImGui.Text($"needToTakeOff: {needToTakeOff}");
-                    ImGui.Text($"readyToTheNextpos: {readyToTheNextpos}");
-                    ImGui.Text($"posdistance: {posdistance}");
-                    foreach (var pos in currentList)
-                    {
-                        if (currentList[dataIndex] == pos)
-                        {
-                            ImGui.TextColored(ImGuiColors.HealerGreen, $"({pos.X},{pos.Y},{pos.Z})");
-                        }
-                        else
-                        {
-                            ImGui.Text($"({pos.X},{pos.Y},{pos.Z})");
-                        }
-                    }
-                }
-            }
-        }
+        if (ImGui.Checkbox("##DevMode", ref Plugin.Configuration.DevMode))
+            Plugin.Configuration.Save();
+        ImGui.SameLine();
+        ImGui.Text("开发者模式");
     }
 
-    public void Run()
+    // ---- 农怪 Tab ----
+
+    private void DrawFarmTab()
     {
-        if (dataIndex >= currentList.Count)
+        bool running = controller.IsRunning;
+
+        // 颇胝迦
+        ImGui.Text("萨维奈岛 - 颇胝迦");
+        ImGui.SameLine();
+        ImGui.BeginDisabled(running);
+        if (ImGui.Checkbox("阿输陀花", ref Plugin.Configuration.PoZhiJia_1)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Checkbox("毕舍遮", ref Plugin.Configuration.PoZhiJia_2)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Checkbox("金刚尾", ref Plugin.Configuration.PoZhiJia_3)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Button("Go##PoZhiJia"))
+            StartFarm(
+                (Plugin.Configuration.PoZhiJia_1, MobsData.PoZhiJia.阿输陀花),
+                (Plugin.Configuration.PoZhiJia_2, MobsData.PoZhiJia.毕舍遮),
+                (Plugin.Configuration.PoZhiJia_3, MobsData.PoZhiJia.金刚尾));
+        ImGui.EndDisabled();
+
+        ImGui.Separator();
+
+        // 叹息海
+        ImGui.Text("叹息海 - 沉思之物");
+        ImGui.SameLine();
+        ImGui.BeginDisabled(running);
+        if (ImGui.Checkbox("思考之物", ref Plugin.Configuration.TanXiZhiWu_1)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Checkbox("彷徨之物", ref Plugin.Configuration.TanXiZhiWu_2)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Checkbox("叹息之物", ref Plugin.Configuration.TanXiZhiWu_3)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Button("Go##TanXi"))
+            StartFarm(
+                (Plugin.Configuration.TanXiZhiWu_1, MobsData.TanXiZhiWu.思考之物),
+                (Plugin.Configuration.TanXiZhiWu_2, MobsData.TanXiZhiWu.彷徨之物),
+                (Plugin.Configuration.TanXiZhiWu_3, MobsData.TanXiZhiWu.叹息之物));
+        ImGui.EndDisabled();
+
+        ImGui.Separator();
+
+        // 伊休妲
+        ImGui.Text("拉凯提亚大森林 - 伊休妲");
+        ImGui.SameLine();
+        ImGui.BeginDisabled(running);
+        if (ImGui.Checkbox("人偶", ref Plugin.Configuration.YiXiuDa_1)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Checkbox("石蒺藜", ref Plugin.Configuration.YiXiuDa_2)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Checkbox("器皿", ref Plugin.Configuration.YiXiuDa_3)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Button("Go##YiXiuDa"))
+            StartFarm(
+                (Plugin.Configuration.YiXiuDa_1, MobsData.YiXiuDa.人偶),
+                (Plugin.Configuration.YiXiuDa_2, MobsData.YiXiuDa.石蒺藜),
+                (Plugin.Configuration.YiXiuDa_3, MobsData.YiXiuDa.器皿));
+        ImGui.EndDisabled();
+
+        ImGui.Separator();
+
+        // 优昙婆罗花
+        ImGui.Text("基拉巴尼亚边区 - 优昙婆罗花");
+        ImGui.SameLine();
+        ImGui.BeginDisabled(running);
+        if (ImGui.Checkbox("莱西", ref Plugin.Configuration.YouTan_1)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Checkbox("狄亚卡", ref Plugin.Configuration.YouTan_2)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Button("Go##YouTan"))
+            StartFarm(
+                (Plugin.Configuration.YouTan_1, MobsData.优昙婆罗花.莱西),
+                (Plugin.Configuration.YouTan_2, MobsData.优昙婆罗花.狄亚卡));
+        ImGui.EndDisabled();
+
+        ImGui.Separator();
+
+        // 卢克洛塔
+        ImGui.Text("魔大陆阿济兹拉 - 卢克洛塔");
+        ImGui.SameLine();
+        ImGui.BeginDisabled(running);
+        if (ImGui.Checkbox("奇美拉", ref Plugin.Configuration.LuKeLuoTa_1)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Checkbox("海德拉", ref Plugin.Configuration.LuKeLuoTa_2)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Checkbox("薇薇尔飞龙", ref Plugin.Configuration.LuKeLuoTa_3)) Plugin.Configuration.Save();
+        ImGui.SameLine();
+        if (ImGui.Button("Go##LuKeLuoTa"))
+            StartFarm(
+                (Plugin.Configuration.LuKeLuoTa_1, MobsData.卢克洛塔.奇美拉),
+                (Plugin.Configuration.LuKeLuoTa_2, MobsData.卢克洛塔.海德拉),
+                (Plugin.Configuration.LuKeLuoTa_3, MobsData.卢克洛塔.薇薇尔飞龙));
+        ImGui.EndDisabled();
+
+        ImGui.Separator();
+
+        // 蚓螈巨虫（无子选项）
+        ImGui.Text("北萨纳兰 - 蚓螈巨虫");
+        ImGui.SameLine();
+        ImGui.BeginDisabled(running);
+        if (ImGui.Button("Go##Yinyuan"))
+            controller.Start(new List<(float, float, float)>(MobsData.蚓螈巨虫));
+        ImGui.EndDisabled();
+    }
+
+    /// <summary>
+    /// 根据选中的子列表合并后启动农怪。
+    /// </summary>
+    private void StartFarm(params (bool Enabled, List<(float X, float Y, float Z)> Points)[] sources)
+    {
+        var points = new List<(float, float, float)>();
+        foreach (var (enabled, list) in sources)
         {
-            dataIndex = 0;
-            waitingFirst = true;
-            return;
+            if (enabled) points.AddRange(list);
+        }
+        controller.Start(points);
+    }
+
+    // ---- Debug Tab ----
+
+    private void DrawDebugTab()
+    {
+        var player = Svc.Objects.LocalPlayer;
+        ImGui.Text($"Position: {player?.Position}");
+        if (ImGui.Button("复制坐标"))
+        {
+            ImGui.SetClipboardText(
+                $"({player?.Position.X}f,{player?.Position.Y}f,{player?.Position.Z}f),");
         }
 
-        if (Svc.Condition[ConditionFlag.InFlight] && readyToTheNextpos)
+        ImGui.Separator();
+        ImGui.Text($"IsRunning: {controller.IsRunning}");
+        ImGui.Text($"DataIndex: {controller.DataIndex} / {controller.CurrentList.Count}");
+        ImGui.Text($"WaitingFirst: {controller.WaitingFirst}");
+        ImGui.Text($"NeedToTakeOff: {controller.NeedToTakeOff}");
+        ImGui.Text($"ReadyToNextPos: {controller.ReadyToTheNextPos}");
+        ImGui.Text($"PosDistance: {controller.PosDistance:F2}");
+
+        ImGui.Separator();
+        ImGui.Text("路径点列表：");
+        for (int i = 0; i < controller.CurrentList.Count; i++)
         {
-            state = "寻路至下一只小怪";
-            readyToTheNextpos = false;
-            VnavmeshStop();
-            flyto(currentList[dataIndex].X, currentList[dataIndex].Y, currentList[dataIndex].Z);
-            return;
-        }
-
-        var Posdistance = Math.Sqrt(Math.Pow(currentList[dataIndex].X - Svc.Objects.LocalPlayer!.Position.X, 2) + Math.Pow(currentList[dataIndex].Z - Svc.Objects.LocalPlayer!.Position.Z, 2));
-        posdistance = Posdistance;
-
-        if (!readyToTheNextpos && Posdistance < 5)
-        {
-            if (Svc.Objects.OfType<IBattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.Objects.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 25).Any())
-            {
-                if (waitingFirst)
-                {
-                    if (Plugin.Configuration.DelayEnable)
-                    {
-                        if (throttleTime == 0)
-                        {
-                            throttleTime = Environment.TickCount64 + (Plugin.Configuration.DelayTime * 1000);
-                        }
-
-                        if (throttleTime != 0 && Environment.TickCount64 > throttleTime)
-                        {
-                            if (Svc.Condition[ConditionFlag.Mounted] && Posdistance < 3)
-                            {
-                                VnavmeshStop();
-                                Dismount();
-                            }
-                            state = "等待击杀当前小怪";
-                            throttleTime = 0;
-                            waitingFirst = false;
-                        }
-                        else
-                        {
-                            state = $"第一只小怪已刷新，延迟剩余{throttleTime - Environment.TickCount64}ms";
-                        }
-                    }
-                    else
-                    {
-                        if (Svc.Condition[ConditionFlag.Mounted] && Posdistance < 3)
-                        {
-                            VnavmeshStop();
-                            Dismount();
-                        }
-                        state = "等待击杀当前小怪";
-                        throttleTime = 0;
-                        waitingFirst = false;
-                    }
-                }
-                else
-                {
-                    if (Svc.Condition[ConditionFlag.Mounted] && Posdistance < 3)
-                    {
-                        VnavmeshStop();
-                        Dismount();
-                    }
-                    state = "等待击杀当前小怪";
-                    throttleTime = 0;
-                    waitingFirst = false;
-                }
-            }
+            var pos = controller.CurrentList[i];
+            bool isCurrent = i == controller.DataIndex;
+            if (isCurrent)
+                ImGui.TextColored(ImGuiColors.HealerGreen, $">> ({pos.X:F2}, {pos.Y:F2}, {pos.Z:F2})");
             else
-            {
-                if (dataIndex == 0 && waitingFirst)
-                {
-                    state = "等待第一只刷新";
-                    return;
-                }
-
-                if (dataIndex >= currentList.Count)
-                {
-                    dataIndex = 0;
-                    waitingFirst = true;
-                }
-                else
-                {
-                    dataIndex++;
-                }
-                readyToTheNextpos = true;
-                needToTakeOff = true;
-            }
+                ImGui.Text($"   ({pos.X:F2}, {pos.Y:F2}, {pos.Z:F2})");
         }
-    }
-
-    public void reset()
-    {
-        currentList.Clear();
-
-        waitingFirst = false;
-        throttleTime = 0;
-
-        dataIndex = 0;
-        needToTakeOff = true;
-        readyToTheNextpos = true;
-    }
-
-    public static void walkto(float x, float y, float z)
-    {
-        Chat.Instance.ExecuteCommand($"/vnav moveto {x} {y} {z}");
-    }
-    public void flyto(float x, float y, float z)
-    {
-        if (!Svc.Condition[ConditionFlag.InFlight])
-        {
-            needToTakeOff = true;
-        }
-        else
-        {
-            Chat.Instance.ExecuteCommand($"/vnav flyto {x} {y} {z}");
-        }
-    }
-    public void Mount()
-    {
-        ActionManager.Instance()->UseAction(ActionType.GeneralAction, 9); //上坐骑
-    }
-    public void Dismount()
-    {
-        ActionManager.Instance()->UseAction(ActionType.GeneralAction, 23); //下坐骑
-    }
-    public void Takeoff()
-    {
-        ActionManager.Instance()->UseAction(ActionType.GeneralAction, 2); //起飞
-        needToTakeOff = false;
-    }
-    public static void TurnOnAE()
-    {
-        Chat.Instance.ExecuteCommand($"/aeTargetSelector on");
-        Chat.Instance.ExecuteCommand($"/aeTargetSelector mode7");
-        Chat.Instance.ExecuteCommand($"/aepull on");
-    }
-    public static void TurnOffAE()
-    {
-        Chat.Instance.ExecuteCommand($"/aeTargetSelector off");
-        Chat.Instance.ExecuteCommand($"/aepull off");
-    }
-    public static void VnavmeshStop()
-    {
-        Chat.Instance.ExecuteCommand($"/vnav stop");
-    }
-
-    // 贪婪算法计算最短路径
-    public static List<(float X, float Y, float Z)> GetShortestPath(List<(float X, float Y, float Z)> points)
-    {
-        if (points.Count <= 1)
-            return points;
-
-        var path = new List<(float X, float Y, float Z)>();
-
-        // 初始点
-        var currentPoint = points.OrderBy(p => Distance((Svc.Objects.LocalPlayer!.Position.X, Svc.Objects.LocalPlayer.Position.Y, Svc.Objects.LocalPlayer.Position.Z), p)).First();
-        path.Add(currentPoint);
-        points.Remove(currentPoint);
-
-        // 计算路径
-        while (points.Count > 0)
-        {
-            var nearestPoint = points.OrderBy(p => Distance(currentPoint, p)).First();
-            path.Add(nearestPoint);
-            currentPoint = nearestPoint;
-            points.Remove(currentPoint);
-        }
-
-        return path;
-    }
-
-    // 计算两点之间的距离
-    public static double Distance((float X, float Y, float Z) p1, (float X, float Y, float Z) p2)
-    {
-        var dx = p1.X - p2.X;
-        var dy = p1.Y - p2.Y;
-        var dz = p1.Z - p2.Z;
-        return Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz));
     }
 }
