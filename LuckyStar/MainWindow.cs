@@ -302,10 +302,10 @@ public unsafe class MainWindow : Window, IDisposable
             {
                 if (tabItem)
                 {
-                    ImGui.Text($"Position: {Svc.ClientState.LocalPlayer?.Position}");
+                    ImGui.Text($"Position: {Svc.Objects.LocalPlayer?.Position}");
                     if (ImGui.Button("复制"))
                     {
-                        ImGui.SetClipboardText($"({Svc.ClientState.LocalPlayer?.Position.X}f,{Svc.ClientState.LocalPlayer?.Position.Y}f,{Svc.ClientState.LocalPlayer?.Position.Z}f),");
+                        ImGui.SetClipboardText($"({Svc.Objects.LocalPlayer?.Position.X}f,{Svc.Objects.LocalPlayer?.Position.Y}f,{Svc.Objects.LocalPlayer?.Position.Z}f),");
                     }
                     ImGui.Text($"isRunning: {isRunning}");
                     ImGui.Text($"DataIndex: {dataIndex}");
@@ -348,12 +348,12 @@ public unsafe class MainWindow : Window, IDisposable
             return;
         }
 
-        var Posdistance = Math.Sqrt(Math.Pow(currentList[dataIndex].X - Svc.ClientState.LocalPlayer!.Position.X, 2) + Math.Pow(currentList[dataIndex].Z - Svc.ClientState.LocalPlayer!.Position.Z, 2));
+        var Posdistance = Math.Sqrt(Math.Pow(currentList[dataIndex].X - Svc.Objects.LocalPlayer!.Position.X, 2) + Math.Pow(currentList[dataIndex].Z - Svc.Objects.LocalPlayer!.Position.Z, 2));
         posdistance = Posdistance;
 
         if (!readyToTheNextpos && Posdistance < 5)
         {
-            if (Svc.Objects.OfType<IBattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.ClientState.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 25).Any())
+            if (Svc.Objects.OfType<IBattleChara>().Where(b => MobsData.Nameid.Contains(b.NameId) && !b.IsDead && Vector3.Distance(Svc.Objects.LocalPlayer?.Position ?? Vector3.Zero, b.Position) <= 25).Any())
             {
                 if (waitingFirst)
                 {
@@ -492,7 +492,7 @@ public unsafe class MainWindow : Window, IDisposable
         var path = new List<(float X, float Y, float Z)>();
 
         // 初始点
-        var currentPoint = points.OrderBy(p => Distance((Svc.ClientState.LocalPlayer!.Position.X, Svc.ClientState.LocalPlayer.Position.Y, Svc.ClientState.LocalPlayer.Position.Z), p)).First();
+        var currentPoint = points.OrderBy(p => Distance((Svc.Objects.LocalPlayer!.Position.X, Svc.Objects.LocalPlayer.Position.Y, Svc.Objects.LocalPlayer.Position.Z), p)).First();
         path.Add(currentPoint);
         points.Remove(currentPoint);
 
